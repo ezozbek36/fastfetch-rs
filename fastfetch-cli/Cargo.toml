@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 libfastfetch = { path = "../libfastfetch" }
+anyhow = "1.0"
+rayon = "1.10"
