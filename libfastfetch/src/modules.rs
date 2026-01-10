@@ -10,7 +10,7 @@ pub mod memory;
 pub mod os;
 
 use crate::Result;
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 /// Module trait for all detection modules
 pub trait Module: Send + Sync {
@@ -55,6 +55,21 @@ impl ModuleKind {
     /// Get all available module kinds
     pub const fn all() -> &'static [Self] {
         &[Self::Os, Self::Host, Self::Kernel, Self::Cpu, Self::Memory]
+    }
+}
+
+impl FromStr for ModuleKind {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "os" => Ok(Self::Os),
+            "host" => Ok(Self::Host),
+            "kernel" => Ok(Self::Kernel),
+            "cpu" => Ok(Self::Cpu),
+            "memory" => Ok(Self::Memory),
+            _ => Err(format!("Unknown module: {s}")),
+        }
     }
 }
 

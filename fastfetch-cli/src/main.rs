@@ -1,5 +1,5 @@
 use clap::Parser;
-use libfastfetch::{ModuleKind, modules::*};
+use libfastfetch::{ModuleInfo, ModuleKind, Result, modules::create_module};
 use rayon::prelude::*;
 
 /// A fast system information tool written in Rust
@@ -44,13 +44,9 @@ fn main() {
         // Parse requested modules
         let mut kinds = Vec::new();
         for name in module_names {
-            match name.to_lowercase().as_str() {
-                "os" => kinds.push(ModuleKind::Os),
-                "host" => kinds.push(ModuleKind::Host),
-                "kernel" => kinds.push(ModuleKind::Kernel),
-                "cpu" => kinds.push(ModuleKind::Cpu),
-                "memory" => kinds.push(ModuleKind::Memory),
-                _ => {
+            match name.parse::<ModuleKind>() {
+                Ok(kind) => kinds.push(kind),
+                Err(_) => {
                     eprintln!("Warning: Unknown module '{name}', skipping");
                 }
             }
@@ -72,8 +68,18 @@ fn main() {
     }
 
     // Execute modules
-    let results: Vec<_> = if args.no_parallel {
-        // Sequential execution
+    let results = execute_modules(&module_kinds, args.no_parallel);
+
+    // Display results
+    display_results(results, args.values_only);
+}
+
+/// Execute modules either in parallel or sequentially
+fn execute_modules(
+    module_kinds: &[ModuleKind],
+    sequential: bool,
+) -> Vec<(ModuleKind, Result<ModuleInfo>)> {
+    if sequential {
         module_kinds
             .iter()
             .map(|&kind| {
@@ -82,7 +88,6 @@ fn main() {
             })
             .collect()
     } else {
-        // Parallel execution
         module_kinds
             .par_iter()
             .map(|&kind| {
@@ -90,25 +95,27 @@ fn main() {
                 (kind, module.detect())
             })
             .collect()
-    };
+    }
+}
 
-    // Display results in order
+/// Display module results
+fn display_results(results: Vec<(ModuleKind, Result<ModuleInfo>)>, values_only: bool) {
     for (kind, result) in results {
         match result {
             Ok(Some(info)) => {
-                if args.values_only {
+                if values_only {
                     println!("{info}");
                 } else {
                     println!("{}: {info}", kind.name());
                 }
             }
             Ok(None) => {
-                if !args.values_only {
+                if !values_only {
                     println!("{}: Not available", kind.name());
                 }
             }
             Err(e) => {
-                if !args.values_only {
+                if !values_only {
                     eprintln!("{}: Error - {e}", kind.name());
                 }
             }
