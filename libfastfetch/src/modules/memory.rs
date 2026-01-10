@@ -128,8 +128,8 @@ fn detect_memory() -> Result<MemoryInfo> {
     }
 
     if total > 0 {
-        let page_size = 4096u64;
-        let available = free_pages * page_size;
+        const PAGE_SIZE: u64 = 4096;
+        let available = free_pages * PAGE_SIZE;
         let used = total.saturating_sub(available);
         Ok(Some(MemoryInfo { total, used }))
     } else {
