@@ -1,14 +1,14 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Fastfetch library for system information detection
+//!
+//! This library provides a modular system for detecting and reporting
+//! system information across multiple platforms.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod error;
+pub mod modules;
+pub mod platform;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use error::{Error, Result};
+pub use modules::{Module, ModuleInfo, ModuleKind};
+
+/// Re-export anyhow for convenience
+pub use anyhow;
