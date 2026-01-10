@@ -1,0 +1,22 @@
+[package]
+name = "fastfetch-rs"
+version = "0.0.1"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "#website#"
+repository = "#repository#"
+description = "fastfetch, but written in rust"
+authors = ["Ezozbek Rasulov <contact@ezozbek.dev>"]
+
+# Dependencies that will included with final binary
+[dependencies]
+
+# Development dependencies which aren't used in release binary
+[dev-dependencies]
+
+# Optimize release binary as much as possible
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1

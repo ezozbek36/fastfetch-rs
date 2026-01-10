@@ -1,0 +1,4 @@
+[submodule "3rd_party/fastfetch"]
+	path = 3rd_party/fastfetch
+	url = https://github.com/ezozbek36/fastfetch
+	branch = nix
