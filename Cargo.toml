@@ -1,22 +1,22 @@
-[package]
-name = "fastfetch-rs"
+[workspace]
+members = [
+  "fastfetch-cli", "libfastfetch",
+]
+resolver = "3"
+
+[workspace.package]
 version = "0.0.1"
 edition = "2024"
-license = "MIT OR Apache-2.0"
-homepage = "#website#"
-repository = "#repository#"
+license = "MIT"
 description = "fastfetch, but written in rust"
+repository = "https://github.com/ezozbek36/fastfetch-rs"
 authors = ["Ezozbek Rasulov <contact@ezozbek.dev>"]
+# TODO: publish after initial release
+publish = false
 
-# Dependencies that will included with final binary
-[dependencies]
-
-# Development dependencies which aren't used in release binary
-[dev-dependencies]
-
-# Optimize release binary as much as possible
 [profile.release]
 strip = true
 opt-level = "z"
 lto = true
 codegen-units = 1
+panic = "abort"

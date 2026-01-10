@@ -3,5 +3,12 @@
 version = 4
 
 [[package]]
-name = "fastfetch-rs"
-version = "0.0.1"
+name = "fastfetch-cli"
+version = "0.1.0"
+dependencies = [
+ "libfastfetch",
+]
+
+[[package]]
+name = "libfastfetch"
+version = "0.1.0"
