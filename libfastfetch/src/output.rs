@@ -3,7 +3,10 @@
 //! Provides a small vertical slice for formatting module results, with
 //! optional logo rendering and values-only output.
 
+pub mod color;
+
 use crate::{ModuleKind, logo::Logo};
+pub use color::{Color, StyledString, Style};
 
 /// Render-ready module entry containing formatted value or error text.
 #[derive(Debug, Clone)]
@@ -97,16 +100,29 @@ impl OutputFormatter {
     }
 
     fn merge_with_logo(&self, lines: Vec<String>, logo: &Logo) -> String {
-        let total_lines = lines.len().max(logo.lines().len());
+        let logo_lines = logo.lines();
+        let total_lines = lines.len().max(logo_lines.len());
         let mut rendered = Vec::with_capacity(total_lines);
         let spacer = "  ";
 
         for idx in 0..total_lines {
-            let logo_line = logo.lines().get(idx).map(String::as_str).unwrap_or("");
+            let logo_line = logo_lines.get(idx).map(String::as_str).unwrap_or("");
             let content_line = lines.get(idx).map(String::as_str).unwrap_or("");
+
+            // Calculate visible width (excluding ANSI codes)
+            let visible_width = logo_line
+                .chars()
+                .filter(|&c| c != '\x1b')
+                .collect::<String>()
+                .replace("[0m", "")
+                .replace("[1m", "")
+                .replace(|c: char| c.is_ascii_digit() || c == '[' || c == ';' || c == 'm', "")
+                .len();
+
+            let padding = logo.width().saturating_sub(visible_width);
             rendered.push(format!(
-                "{logo_line:<width$}{spacer}{content_line}",
-                width = logo.width()
+                "{logo_line}{:padding$}{spacer}{content_line}",
+                ""
             ));
         }
 
