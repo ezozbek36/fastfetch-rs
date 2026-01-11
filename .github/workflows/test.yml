@@ -26,8 +26,23 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
+      - name: Run cargo check on all workspace members
+        run: nix develop --command cargo check --workspace
+
+      - name: Run cargo fmt check
+        run: nix develop --command cargo fmt --check
+
+      - name: Run cargo clippy on all workspace members
+        run: nix develop --command cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run cargo tests on all workspace members
+        run: nix develop --command cargo test --workspace
+
       - name: Build project with Nix
         run: nix build
 
-      - name: Run cargo tests
-        run: nix develop --command -- cargo test
+      - name: Verify binary functionality
+        run: |
+          ./result/bin/fastfetch-cli --version
+          ./result/bin/fastfetch-cli --help
+          ./result/bin/fastfetch-cli --list-modules

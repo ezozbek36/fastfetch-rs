@@ -49,13 +49,12 @@ fn detect_cpu() -> Result<CpuInfo> {
             if let Some(name) = value.split(':').nth(1) {
                 model = name.trim().to_string();
             }
-        } else if let Some(value) = line.strip_prefix("cpu cores") {
-            if let Some(count) = value.split(':').nth(1) {
-                if let Ok(num) = count.trim().parse() {
-                    cores = Some(num);
-                    break;
-                }
-            }
+        } else if let Some(value) = line.strip_prefix("cpu cores")
+            && let Some(count) = value.split(':').nth(1)
+            && let Ok(num) = count.trim().parse()
+        {
+            cores = Some(num);
+            break;
         }
     }
 
