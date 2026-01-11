@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "fastfetch-cli",
+  "fastfetch-rs",
   "libfastfetch",
 ]
 resolver = "2"

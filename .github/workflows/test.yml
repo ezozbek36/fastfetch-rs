@@ -43,6 +43,6 @@ jobs:
 
       - name: Verify binary functionality
         run: |
-          ./result/bin/fastfetch-cli --version
-          ./result/bin/fastfetch-cli --help
-          ./result/bin/fastfetch-cli --list-modules
+          ./result/bin/fastfetch-rs --version
+          ./result/bin/fastfetch-rs --help
+          ./result/bin/fastfetch-rs --list-modules
