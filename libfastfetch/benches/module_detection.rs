@@ -6,18 +6,19 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use libfastfetch::{
     modules::{create_module, ModuleKind},
-    Config,
+    Config, RealSystemContext,
 };
 
 /// Benchmark individual module detection
 fn bench_individual_modules(c: &mut Criterion) {
     let mut group = c.benchmark_group("individual_modules");
+    let ctx = RealSystemContext;
 
     for kind in ModuleKind::all() {
         group.bench_with_input(BenchmarkId::from_parameter(kind), kind, |b, &kind| {
             b.iter(|| {
                 let module = create_module(kind);
-                black_box(module.detect())
+                black_box(module.detect(&ctx))
             });
         });
     }
