@@ -17,8 +17,8 @@ let
   lib = pkgs.lib;
   getLibFolder = pkg: "${pkg}/lib";
 
-  # Manifest via Cargo.toml
-  manifest = (pkgs.lib.importTOML ./Cargo.toml).package;
+  # Manifest via fastfetch-cli/Cargo.toml (the binary crate in the workspace)
+  manifest = (pkgs.lib.importTOML ./fastfetch-cli/Cargo.toml).package;
 in
 pkgs.rustPlatform.buildRustPackage {
   # Package related things automatically
@@ -64,8 +64,8 @@ pkgs.rustPlatform.buildRustPackage {
   ];
 
   meta = with lib; {
-    homepage = manifest.homepage;
-    description = manifest.description;
+    homepage = manifest.repository or "https://github.com/ezozbek36/fastfetch-rs";
+    description = "fastfetch, but written in rust";
     # https://github.com/NixOS/nixpkgs/blob/master/lib/licenses.nix
     license = with lib.licenses; [
       asl20

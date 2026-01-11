@@ -16,8 +16,8 @@ let
   # Helpful nix function
   getLibFolder = pkg: "${pkg}/lib";
 
-  # Manifest
-  manifest = (pkgs.lib.importTOML ./Cargo.toml).package;
+  # Manifest from fastfetch-cli/Cargo.toml (the binary crate in the workspace)
+  manifest = (pkgs.lib.importTOML ./fastfetch-cli/Cargo.toml).package;
 in
 pkgs.stdenv.mkDerivation {
   name = "${manifest.name}-dev";

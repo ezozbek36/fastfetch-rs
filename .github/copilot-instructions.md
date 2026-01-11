@@ -1,7 +1,10 @@
 # Copilot Instructions for fastfetch-rs
 
 ## Big Picture
-- Binary-only Rust crate; entrypoint in [src/main.rs](src/main.rs). Currently a minimal scaffold intended to grow into a Rust reimplementation of Fastfetch (system info CLI).
+- Cargo workspace with two crates:
+  - `fastfetch-cli`: Binary crate with main entrypoint in [fastfetch-cli/src/main.rs](fastfetch-cli/src/main.rs)
+  - `libfastfetch`: Library crate with core functionality in [libfastfetch/src/lib.rs](libfastfetch/src/lib.rs)
+- Currently a minimal scaffold intended to grow into a Rust reimplementation of Fastfetch (system info CLI).
 - Upstream reference is vendored as a submodule at [3rd_party/fastfetch](3rd_party/fastfetch). Use it to understand desired behavior, modules, options, and output formats.
 - Nix-first workflow: development shell and packaging are defined via [flake.nix](flake.nix), [shell.nix](shell.nix), and [default.nix](default.nix).
 
@@ -12,16 +15,17 @@
 
 ## Build, Run, Package
 - Cargo (inside dev shell): `cargo build --release` and `cargo run`.
-- Nix package: `nix build` → binary at `./result/bin/fastfetch-rs` (derived from Cargo package name in [Cargo.toml](Cargo.toml)).
+- Nix package: `nix build` → binary at `./result/bin/fastfetch-cli` (derived from the binary crate name in [fastfetch-cli/Cargo.toml](fastfetch-cli/Cargo.toml)).
 - CI mirrors this: see [test.yml](.github/workflows/test.yml) — runs `nix flake check`, `nix build`, and `cargo test` inside `nix develop`.
 
 ## Project Conventions
-- Rust edition: 2024 (see [Cargo.toml](Cargo.toml)). Follow code style/naming in [rust.instructions.md](.github/instructions/rust.instructions.md).
+- Rust edition: 2024 (see [Cargo.toml](Cargo.toml) workspace definition). Follow code style/naming in [rust.instructions.md](.github/instructions/rust.instructions.md).
 - Release profile is optimized (strip, LTO, `opt-level = "z"`, single codegen unit) — keep binaries lean unless there’s a measured need to relax these.
+- Workspace structure: root [Cargo.toml](Cargo.toml) defines the workspace, member crates ([fastfetch-cli](fastfetch-cli/Cargo.toml) and [libfastfetch](libfastfetch/Cargo.toml)) have their own Cargo.toml files.
 - System/linker setup in Nix shells: [shell.nix](shell.nix) and [default.nix](default.nix) export `RUST_BACKTRACE`, `LD_LIBRARY_PATH`, and `NIX_LDFLAGS` (libiconv pre-wired). Respect/extend these when introducing native deps.
 
 ## Adding Dependencies
-- Rust crates: edit [Cargo.toml](Cargo.toml). Prefer small, portable dependencies.
+- Rust crates: edit the appropriate Cargo.toml in [fastfetch-cli/Cargo.toml](fastfetch-cli/Cargo.toml) or [libfastfetch/Cargo.toml](libfastfetch/Cargo.toml). Prefer small, portable dependencies.
 - System libs (for FFI or runtime needs): add to `buildInputs`/`nativeBuildInputs` in both [shell.nix](shell.nix) and [default.nix](default.nix). If a new lib needs runtime linking, extend `LD_LIBRARY_PATH`/`NIX_LDFLAGS` similarly.
 
 ## Fastfetch Submodule (Reference)
@@ -32,7 +36,7 @@
   - Refresh to remote branch: `git submodule update --remote 3rd_party/fastfetch`
 
 ## Where to Put Code
-- Place new Rust modules under [src/](src) and wire them from the binary entrypoint [src/main.rs](src/main.rs). No library crate exists yet.
+- Place new Rust modules under [libfastfetch/src/](libfastfetch/src) for core functionality, or [fastfetch-cli/src/](fastfetch-cli/src) for CLI-specific code. Wire them from the binary entrypoint [fastfetch-cli/src/main.rs](fastfetch-cli/src/main.rs).
 - Keep OS and hardware interrogation code modular to map cleanly to Fastfetch features as they are ported.
 
 ## Debugging & Tests
