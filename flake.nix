@@ -14,27 +14,24 @@
 
   outputs =
     { flake-parts, ... }@inputs:
-    flake-parts.lib.mkFlake { inherit inputs; } (
-      top@{ ... }:
-      {
-        systems = [
-          "x86_64-linux"
-          "aarch64-linux"
-          "x86_64-darwin"
-          "aarch64-darwin"
-        ];
-        perSystem =
-          { pkgs, ... }:
-          {
-            # Nix script formatter
-            formatter = pkgs.alejandra;
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+      perSystem =
+        { pkgs, ... }:
+        {
+          # Nix script formatter
+          formatter = pkgs.alejandra;
 
-            # Development environment
-            devShells.default = import ./shell.nix { inherit pkgs; };
+          # Development environment
+          devShells.default = import ./shell.nix { inherit pkgs; };
 
-            # Output package
-            packages.default = pkgs.callPackage ./. { inherit pkgs; };
-          };
-      }
-    );
+          # Output package
+          packages.default = pkgs.callPackage ./. { inherit pkgs; };
+        };
+    };
 }
