@@ -67,18 +67,16 @@ fn detect_memory() -> Result<MemoryInfo> {
     let mut available = 0u64;
 
     for line in meminfo.lines() {
-        if let Some(value) = line.strip_prefix("MemTotal:") {
-            if let Some(kb_str) = value.split_whitespace().next() {
-                if let Ok(kb) = kb_str.parse::<u64>() {
-                    total = kb * 1024;
-                }
-            }
-        } else if let Some(value) = line.strip_prefix("MemAvailable:") {
-            if let Some(kb_str) = value.split_whitespace().next() {
-                if let Ok(kb) = kb_str.parse::<u64>() {
-                    available = kb * 1024;
-                }
-            }
+        if let Some(value) = line.strip_prefix("MemTotal:")
+            && let Some(kb_str) = value.split_whitespace().next()
+            && let Ok(kb) = kb_str.parse::<u64>()
+        {
+            total = kb * 1024;
+        } else if let Some(value) = line.strip_prefix("MemAvailable:")
+            && let Some(kb_str) = value.split_whitespace().next()
+            && let Ok(kb) = kb_str.parse::<u64>()
+        {
+            available = kb * 1024;
         }
 
         if total > 0 && available > 0 {

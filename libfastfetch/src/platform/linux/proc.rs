@@ -14,10 +14,10 @@ pub fn parse_meminfo() -> io::Result<HashMap<String, u64>> {
             let value_str = value.trim();
 
             // Extract numeric value (usually in kB)
-            if let Some(num_str) = value_str.split_whitespace().next() {
-                if let Ok(num) = num_str.parse::<u64>() {
-                    info.insert(key.to_string(), num);
-                }
+            if let Some(num_str) = value_str.split_whitespace().next()
+                && let Ok(num) = num_str.parse::<u64>()
+            {
+                info.insert(key.to_string(), num);
             }
         }
     }
@@ -36,7 +36,8 @@ pub fn parse_cpuinfo() -> io::Result<HashMap<String, String>> {
             let value = value.trim();
 
             // Only store first occurrence (first CPU core info)
-            info.entry(key.to_string()).or_insert_with(|| value.to_string());
+            info.entry(key.to_string())
+                .or_insert_with(|| value.to_string());
         }
     }
 

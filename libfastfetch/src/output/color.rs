@@ -186,6 +186,9 @@ mod tests {
     #[test]
     fn test_rgb_color() {
         let color = Color::Rgb(255, 128, 0);
-        assert_eq!(color.fg_rgb_code(), Some("\x1b[38;2;255;128;0m".to_string()));
+        assert_eq!(
+            color.fg_rgb_code(),
+            Some("\x1b[38;2;255;128;0m".to_string())
+        );
     }
 }

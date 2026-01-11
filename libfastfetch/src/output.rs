@@ -6,7 +6,7 @@
 pub mod color;
 
 use crate::{ModuleKind, logo::Logo};
-pub use color::{Color, StyledString, Style};
+pub use color::{Color, Style, StyledString};
 
 /// Render-ready module entry containing formatted value or error text.
 #[derive(Debug, Clone)]
@@ -116,14 +116,14 @@ impl OutputFormatter {
                 .collect::<String>()
                 .replace("[0m", "")
                 .replace("[1m", "")
-                .replace(|c: char| c.is_ascii_digit() || c == '[' || c == ';' || c == 'm', "")
+                .replace(
+                    |c: char| c.is_ascii_digit() || c == '[' || c == ';' || c == 'm',
+                    "",
+                )
                 .len();
 
             let padding = logo.width().saturating_sub(visible_width);
-            rendered.push(format!(
-                "{logo_line}{:padding$}{spacer}{content_line}",
-                ""
-            ));
+            rendered.push(format!("{logo_line}{:padding$}{spacer}{content_line}", ""));
         }
 
         rendered.join("\n")
