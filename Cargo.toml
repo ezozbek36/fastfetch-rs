@@ -4,12 +4,9 @@ members = [
 ]
 resolver = "3"
 
-[package]
-name = "fastfetch-rs"
-version = "0.0.1"
+[workspace.package]
 edition = "2024"
 license = "MIT"
-description = "fastfetch, but written in rust"
 repository = "https://github.com/ezozbek36/fastfetch-rs"
 authors = ["Ezozbek Rasulov <contact@ezozbek.dev>"]
 # TODO: publish after initial release
