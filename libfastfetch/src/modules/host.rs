@@ -1,6 +1,6 @@
 //! Host information detection module
 
-use crate::{Module, ModuleInfo, ModuleKind, Result};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
 
 /// Host detection module
@@ -20,9 +20,8 @@ impl fmt::Display for HostInfo {
 }
 
 impl Module for HostModule {
-    fn detect(&self) -> Result<ModuleInfo> {
-        let info = detect_host()?;
-        Ok(info.map(ModuleInfo::Host))
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_host(ctx).map(ModuleInfo::Host)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -31,36 +30,25 @@ impl Module for HostModule {
 }
 
 #[cfg(unix)]
-fn detect_host() -> Result<HostInfo> {
-    use std::ffi::CStr;
-
-    let mut buf = [0u8; 256];
-    let result = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
-
-    if result == 0 {
-        let hostname = unsafe { CStr::from_ptr(buf.as_ptr() as *const libc::c_char) }
-            .to_string_lossy()
-            .to_string();
-
-        Ok(Some(HostInfo { hostname }))
-    } else {
-        Ok(None)
+fn detect_host(ctx: &dyn SystemContext) -> DetectionResult<HostInfo> {
+    match ctx.get_hostname() {
+        Ok(hostname) => DetectionResult::Detected(HostInfo { hostname }),
+        Err(_) => DetectionResult::Unavailable,
     }
 }
 
 #[cfg(target_os = "windows")]
-fn detect_host() -> Result<HostInfo> {
-    use std::env;
+fn detect_host(ctx: &dyn SystemContext) -> DetectionResult<HostInfo> {
+    let hostname = ctx
+        .get_env("COMPUTERNAME")
+        .or_else(|| ctx.get_env("HOSTNAME"))
+        .unwrap_or_else(|| "Unknown".to_string());
 
-    let hostname = env::var("COMPUTERNAME")
-        .or_else(|_| env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "Unknown".to_string());
-
-    Ok(Some(HostInfo { hostname }))
+    DetectionResult::Detected(HostInfo { hostname })
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
-fn detect_host() -> Result<HostInfo> {
+fn detect_host(_ctx: &dyn SystemContext) -> DetectionResult<HostInfo> {
     use crate::error::Error;
-    Err(Error::UnsupportedPlatform.into())
+    DetectionResult::Error(Error::UnsupportedPlatform)
 }
