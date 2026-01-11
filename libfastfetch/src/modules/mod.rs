@@ -11,7 +11,7 @@ pub mod os;
 pub mod shell;
 pub mod uptime;
 
-use crate::DetectionResult;
+use crate::{context::SystemContext, DetectionResult};
 use std::{fmt, str::FromStr};
 
 /// Module trait for all detection modules
@@ -22,7 +22,7 @@ pub trait Module: Send + Sync {
     /// - `Detected(info)` if detection succeeded
     /// - `Unavailable` if information is unavailable
     /// - `Error(e)` if detection failed with an error
-    fn detect(&self) -> DetectionResult<ModuleInfo>;
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo>;
 
     /// Get the module kind
     fn kind(&self) -> ModuleKind;

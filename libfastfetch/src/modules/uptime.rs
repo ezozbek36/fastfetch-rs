@@ -1,7 +1,8 @@
 //! Uptime information detection module
 
-use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
+use std::path::Path;
 
 /// Uptime detection module
 #[derive(Debug)]
@@ -46,8 +47,8 @@ impl fmt::Display for UptimeInfo {
 }
 
 impl Module for UptimeModule {
-    fn detect(&self) -> DetectionResult<ModuleInfo> {
-        detect_uptime().map(ModuleInfo::Uptime)
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_uptime(ctx).map(ModuleInfo::Uptime)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -56,10 +57,8 @@ impl Module for UptimeModule {
 }
 
 #[cfg(target_os = "linux")]
-fn detect_uptime() -> DetectionResult<UptimeInfo> {
-    use std::fs;
-
-    let uptime_str = match fs::read_to_string("/proc/uptime") {
+fn detect_uptime(ctx: &dyn SystemContext) -> DetectionResult<UptimeInfo> {
+    let uptime_str = match ctx.read_file(Path::new("/proc/uptime")) {
         Ok(content) => content,
         Err(err) => return DetectionResult::Error(err.into()),
     };
@@ -79,19 +78,13 @@ fn detect_uptime() -> DetectionResult<UptimeInfo> {
 }
 
 #[cfg(target_os = "macos")]
-fn detect_uptime() -> DetectionResult<UptimeInfo> {
-    use std::process::Command;
-
-    let output = match Command::new("sysctl")
-        .arg("-n")
-        .arg("kern.boottime")
-        .output()
-    {
+fn detect_uptime(ctx: &dyn SystemContext) -> DetectionResult<UptimeInfo> {
+    let output = match ctx.execute_command("sysctl", &["-n", "kern.boottime"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    if output.status.success() {
+    if output.success {
         let boottime_str = String::from_utf8_lossy(&output.stdout);
 
         // kern.boottime format: "{ sec = 1234567890, usec = 0 } ..."
@@ -115,26 +108,20 @@ fn detect_uptime() -> DetectionResult<UptimeInfo> {
 }
 
 #[cfg(target_os = "windows")]
-fn detect_uptime() -> DetectionResult<UptimeInfo> {
+fn detect_uptime(_ctx: &dyn SystemContext) -> DetectionResult<UptimeInfo> {
     // Windows implementation would require Windows API
     // Simplified version using environment or command
     DetectionResult::Unavailable
 }
 
 #[cfg(target_os = "freebsd")]
-fn detect_uptime() -> DetectionResult<UptimeInfo> {
-    use std::process::Command;
-
-    let output = match Command::new("sysctl")
-        .arg("-n")
-        .arg("kern.boottime")
-        .output()
-    {
+fn detect_uptime(ctx: &dyn SystemContext) -> DetectionResult<UptimeInfo> {
+    let output = match ctx.execute_command("sysctl", &["-n", "kern.boottime"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    if output.status.success() {
+    if output.success {
         let boottime_str = String::from_utf8_lossy(&output.stdout);
 
         // Similar parsing as macOS
@@ -162,7 +149,7 @@ fn detect_uptime() -> DetectionResult<UptimeInfo> {
     target_os = "windows",
     target_os = "freebsd"
 )))]
-fn detect_uptime() -> DetectionResult<UptimeInfo> {
+fn detect_uptime(_ctx: &dyn SystemContext) -> DetectionResult<UptimeInfo> {
     use crate::error::Error;
     DetectionResult::Error(Error::UnsupportedPlatform)
 }

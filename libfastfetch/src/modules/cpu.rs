@@ -1,7 +1,8 @@
 //! CPU information detection module
 
-use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
+use std::path::Path;
 
 /// CPU detection module
 #[derive(Debug)]
@@ -25,8 +26,8 @@ impl fmt::Display for CpuInfo {
 }
 
 impl Module for CpuModule {
-    fn detect(&self) -> DetectionResult<ModuleInfo> {
-        detect_cpu().map(ModuleInfo::Cpu)
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_cpu(ctx).map(ModuleInfo::Cpu)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -35,10 +36,8 @@ impl Module for CpuModule {
 }
 
 #[cfg(target_os = "linux")]
-fn detect_cpu() -> DetectionResult<CpuInfo> {
-    use std::fs;
-
-    let cpuinfo = match fs::read_to_string("/proc/cpuinfo") {
+fn detect_cpu(ctx: &dyn SystemContext) -> DetectionResult<CpuInfo> {
+    let cpuinfo = match ctx.read_file(Path::new("/proc/cpuinfo")) {
         Ok(content) => content,
         Err(err) => return DetectionResult::Error(err.into()),
     };
@@ -64,19 +63,13 @@ fn detect_cpu() -> DetectionResult<CpuInfo> {
 }
 
 #[cfg(target_os = "macos")]
-fn detect_cpu() -> DetectionResult<CpuInfo> {
-    use std::process::Command;
-
-    let model_output = match Command::new("sysctl")
-        .arg("-n")
-        .arg("machdep.cpu.brand_string")
-        .output()
-    {
+fn detect_cpu(ctx: &dyn SystemContext) -> DetectionResult<CpuInfo> {
+    let model_output = match ctx.execute_command("sysctl", &["-n", "machdep.cpu.brand_string"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let model = if model_output.status.success() {
+    let model = if model_output.success {
         String::from_utf8_lossy(&model_output.stdout)
             .trim()
             .to_string()
@@ -84,16 +77,12 @@ fn detect_cpu() -> DetectionResult<CpuInfo> {
         "Unknown CPU".to_string()
     };
 
-    let cores_output = match Command::new("sysctl")
-        .arg("-n")
-        .arg("hw.physicalcpu")
-        .output()
-    {
+    let cores_output = match ctx.execute_command("sysctl", &["-n", "hw.physicalcpu"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let cores = if cores_output.status.success() {
+    let cores = if cores_output.success {
         String::from_utf8_lossy(&cores_output.stdout)
             .trim()
             .parse()
@@ -106,28 +95,24 @@ fn detect_cpu() -> DetectionResult<CpuInfo> {
 }
 
 #[cfg(target_os = "windows")]
-fn detect_cpu() -> DetectionResult<CpuInfo> {
-    use std::env;
+fn detect_cpu(ctx: &dyn SystemContext) -> DetectionResult<CpuInfo> {
+    let model = ctx
+        .get_env("PROCESSOR_IDENTIFIER")
+        .unwrap_or_else(|| "Unknown CPU".to_string());
 
-    let model = env::var("PROCESSOR_IDENTIFIER").unwrap_or_else(|_| "Unknown CPU".to_string());
-
-    let cores = env::var("NUMBER_OF_PROCESSORS")
-        .ok()
-        .and_then(|s| s.parse().ok());
+    let cores = ctx.get_env("NUMBER_OF_PROCESSORS").and_then(|s| s.parse().ok());
 
     DetectionResult::Detected(CpuInfo { model, cores })
 }
 
 #[cfg(target_os = "freebsd")]
-fn detect_cpu() -> DetectionResult<CpuInfo> {
-    use std::process::Command;
-
-    let model_output = match Command::new("sysctl").arg("-n").arg("hw.model").output() {
+fn detect_cpu(ctx: &dyn SystemContext) -> DetectionResult<CpuInfo> {
+    let model_output = match ctx.execute_command("sysctl", &["-n", "hw.model"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let model = if model_output.status.success() {
+    let model = if model_output.success {
         String::from_utf8_lossy(&model_output.stdout)
             .trim()
             .to_string()
@@ -135,12 +120,12 @@ fn detect_cpu() -> DetectionResult<CpuInfo> {
         "Unknown CPU".to_string()
     };
 
-    let cores_output = match Command::new("sysctl").arg("-n").arg("hw.ncpu").output() {
+    let cores_output = match ctx.execute_command("sysctl", &["-n", "hw.ncpu"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let cores = if cores_output.status.success() {
+    let cores = if cores_output.success {
         String::from_utf8_lossy(&cores_output.stdout)
             .trim()
             .parse()
@@ -158,7 +143,7 @@ fn detect_cpu() -> DetectionResult<CpuInfo> {
     target_os = "windows",
     target_os = "freebsd"
 )))]
-fn detect_cpu() -> DetectionResult<CpuInfo> {
+fn detect_cpu(_ctx: &dyn SystemContext) -> DetectionResult<CpuInfo> {
     use crate::error::Error;
     DetectionResult::Error(Error::UnsupportedPlatform)
 }

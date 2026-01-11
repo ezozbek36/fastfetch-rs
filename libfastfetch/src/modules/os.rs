@@ -1,7 +1,8 @@
 //! OS information detection module
 
-use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
+use std::path::Path;
 
 /// OS detection module
 #[derive(Debug)]
@@ -26,8 +27,8 @@ impl fmt::Display for OsInfo {
 }
 
 impl Module for OsModule {
-    fn detect(&self) -> DetectionResult<ModuleInfo> {
-        detect_os().map(ModuleInfo::Os)
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_os(ctx).map(ModuleInfo::Os)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -36,12 +37,11 @@ impl Module for OsModule {
 }
 
 #[cfg(target_os = "linux")]
-fn detect_os() -> DetectionResult<OsInfo> {
-    use std::fs;
-
+fn detect_os(ctx: &dyn SystemContext) -> DetectionResult<OsInfo> {
     // Try to read /etc/os-release
-    let os_release = match fs::read_to_string("/etc/os-release")
-        .or_else(|_| fs::read_to_string("/usr/lib/os-release"))
+    let os_release = match ctx
+        .read_file(Path::new("/etc/os-release"))
+        .or_else(|_| ctx.read_file(Path::new("/usr/lib/os-release")))
     {
         Ok(content) => content,
         Err(err) => return DetectionResult::Error(err.into()),
@@ -68,15 +68,13 @@ fn detect_os() -> DetectionResult<OsInfo> {
 }
 
 #[cfg(target_os = "macos")]
-fn detect_os() -> DetectionResult<OsInfo> {
-    use std::process::Command;
-
-    let output = match Command::new("sw_vers").arg("-productVersion").output() {
+fn detect_os(ctx: &dyn SystemContext) -> DetectionResult<OsInfo> {
+    let output = match ctx.execute_command("sw_vers", &["-productVersion"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let version = if output.status.success() {
+    let version = if output.success {
         String::from_utf8_lossy(&output.stdout)
             .trim()
             .to_string()
@@ -93,7 +91,7 @@ fn detect_os() -> DetectionResult<OsInfo> {
 }
 
 #[cfg(target_os = "windows")]
-fn detect_os() -> DetectionResult<OsInfo> {
+fn detect_os(_ctx: &dyn SystemContext) -> DetectionResult<OsInfo> {
     DetectionResult::Detected(OsInfo {
         name: "Windows".to_string(),
         version: None,
@@ -102,15 +100,13 @@ fn detect_os() -> DetectionResult<OsInfo> {
 }
 
 #[cfg(target_os = "freebsd")]
-fn detect_os() -> DetectionResult<OsInfo> {
-    use std::process::Command;
-
-    let output = match Command::new("uname").arg("-r").output() {
+fn detect_os(ctx: &dyn SystemContext) -> DetectionResult<OsInfo> {
+    let output = match ctx.execute_command("uname", &["-r"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let version = if output.status.success() {
+    let version = if output.success {
         String::from_utf8_lossy(&output.stdout)
             .trim()
             .to_string()
@@ -132,7 +128,7 @@ fn detect_os() -> DetectionResult<OsInfo> {
     target_os = "windows",
     target_os = "freebsd"
 )))]
-fn detect_os() -> DetectionResult<OsInfo> {
+fn detect_os(_ctx: &dyn SystemContext) -> DetectionResult<OsInfo> {
     use crate::error::Error;
     DetectionResult::Error(Error::UnsupportedPlatform)
 }

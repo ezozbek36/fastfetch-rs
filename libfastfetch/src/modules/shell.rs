@@ -1,6 +1,6 @@
 //! Shell information detection module
 
-use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
 
 /// Shell detection module
@@ -25,8 +25,8 @@ impl fmt::Display for ShellInfo {
 }
 
 impl Module for ShellModule {
-    fn detect(&self) -> DetectionResult<ModuleInfo> {
-        detect_shell().map(ModuleInfo::Shell)
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_shell(ctx).map(ModuleInfo::Shell)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -35,12 +35,11 @@ impl Module for ShellModule {
 }
 
 #[cfg(unix)]
-fn detect_shell() -> DetectionResult<ShellInfo> {
-    use std::env;
+fn detect_shell(ctx: &dyn SystemContext) -> DetectionResult<ShellInfo> {
     use std::path::Path;
 
     // Get shell from SHELL environment variable
-    let shell_path = env::var("SHELL").unwrap_or_else(|_| String::from("/bin/sh"));
+    let shell_path = ctx.get_env("SHELL").unwrap_or_else(|| String::from("/bin/sh"));
 
     // Extract shell name from path
     let name = Path::new(&shell_path)
@@ -51,11 +50,11 @@ fn detect_shell() -> DetectionResult<ShellInfo> {
 
     // Try to get version for common shells
     let version = match name.as_str() {
-        "bash" => get_command_version("bash", &["--version"]),
-        "zsh" => get_command_version("zsh", &["--version"]),
-        "fish" => get_command_version("fish", &["--version"]),
-        "ksh" => get_command_version("ksh", &["--version"]),
-        "tcsh" => get_command_version("tcsh", &["--version"]),
+        "bash" => get_command_version(ctx, "bash", &["--version"]),
+        "zsh" => get_command_version(ctx, "zsh", &["--version"]),
+        "fish" => get_command_version(ctx, "fish", &["--version"]),
+        "ksh" => get_command_version(ctx, "ksh", &["--version"]),
+        "tcsh" => get_command_version(ctx, "tcsh", &["--version"]),
         _ => None,
     };
 
@@ -63,12 +62,10 @@ fn detect_shell() -> DetectionResult<ShellInfo> {
 }
 
 #[cfg(unix)]
-fn get_command_version(cmd: &str, args: &[&str]) -> Option<String> {
-    use std::process::Command;
+fn get_command_version(ctx: &dyn SystemContext, cmd: &str, args: &[&str]) -> Option<String> {
+    let output = ctx.execute_command(cmd, args).ok()?;
 
-    let output = Command::new(cmd).args(args).output().ok()?;
-
-    if output.status.success() {
+    if output.success {
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Extract version from first line
         let first_line = stdout.lines().next()?.trim();
@@ -87,10 +84,8 @@ fn get_command_version(cmd: &str, args: &[&str]) -> Option<String> {
 }
 
 #[cfg(target_os = "windows")]
-fn detect_shell() -> DetectionResult<ShellInfo> {
-    use std::env;
-
-    let comspec = env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
+fn detect_shell(ctx: &dyn SystemContext) -> DetectionResult<ShellInfo> {
+    let comspec = ctx.get_env("COMSPEC").unwrap_or_else(|| "cmd.exe".to_string());
 
     let name = std::path::Path::new(&comspec)
         .file_stem()
@@ -105,7 +100,7 @@ fn detect_shell() -> DetectionResult<ShellInfo> {
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
-fn detect_shell() -> DetectionResult<ShellInfo> {
+fn detect_shell(_ctx: &dyn SystemContext) -> DetectionResult<ShellInfo> {
     use crate::error::Error;
     DetectionResult::Error(Error::UnsupportedPlatform)
 }

@@ -6,6 +6,7 @@
 
 use crate::{
     config::Config,
+    context::{RealSystemContext, SystemContext},
     logo::Logo,
     modules::{create_module, ModuleKind},
     output::{OutputFormatter, RenderedModule},
@@ -26,18 +27,20 @@ impl Application {
 
     /// Run configured modules, optionally in parallel.
     pub fn run(&self) -> Vec<RenderedModule> {
+        let ctx = RealSystemContext;
+        
         if self.config.parallel() {
             self.config
                 .modules()
                 .par_iter()
-                .map(|&kind| Self::detect_module(kind))
+                .map(|&kind| Self::detect_module(kind, &ctx))
                 .collect()
         } else {
             self.config
                 .modules()
                 .iter()
                 .copied()
-                .map(Self::detect_module)
+                .map(|kind| Self::detect_module(kind, &ctx))
                 .collect()
         }
     }
@@ -50,9 +53,9 @@ impl Application {
         formatter.render(modules)
     }
 
-    fn detect_module(kind: ModuleKind) -> RenderedModule {
+    fn detect_module(kind: ModuleKind, ctx: &dyn SystemContext) -> RenderedModule {
         let module = create_module(kind);
-        match module.detect() {
+        match module.detect(ctx) {
             DetectionResult::Detected(info) => RenderedModule::value(kind, info.to_string()),
             DetectionResult::Unavailable => RenderedModule::unavailable(kind),
             DetectionResult::Error(err) => RenderedModule::error(kind, err.to_string()),

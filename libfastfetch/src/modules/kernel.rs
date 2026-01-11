@@ -1,6 +1,6 @@
 //! Kernel information detection module
 
-use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
 
 /// Kernel detection module
@@ -21,8 +21,8 @@ impl fmt::Display for KernelInfo {
 }
 
 impl Module for KernelModule {
-    fn detect(&self) -> DetectionResult<ModuleInfo> {
-        detect_kernel().map(ModuleInfo::Kernel)
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_kernel(ctx).map(ModuleInfo::Kernel)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -31,30 +31,18 @@ impl Module for KernelModule {
 }
 
 #[cfg(unix)]
-fn detect_kernel() -> DetectionResult<KernelInfo> {
-    use std::ffi::CStr;
-    use std::mem;
-
-    let mut utsname: libc::utsname = unsafe { mem::zeroed() };
-    let result = unsafe { libc::uname(&mut utsname) };
-
-    if result == 0 {
-        let name = unsafe { CStr::from_ptr(utsname.sysname.as_ptr()) }
-            .to_string_lossy()
-            .to_string();
-
-        let version = unsafe { CStr::from_ptr(utsname.release.as_ptr()) }
-            .to_string_lossy()
-            .to_string();
-
-        DetectionResult::Detected(KernelInfo { name, version })
-    } else {
-        DetectionResult::Unavailable
+fn detect_kernel(ctx: &dyn SystemContext) -> DetectionResult<KernelInfo> {
+    match ctx.uname() {
+        Ok(utsname) => DetectionResult::Detected(KernelInfo {
+            name: utsname.sysname,
+            version: utsname.release,
+        }),
+        Err(_) => DetectionResult::Unavailable,
     }
 }
 
 #[cfg(target_os = "windows")]
-fn detect_kernel() -> DetectionResult<KernelInfo> {
+fn detect_kernel(_ctx: &dyn SystemContext) -> DetectionResult<KernelInfo> {
     DetectionResult::Detected(KernelInfo {
         name: "Windows NT".to_string(),
         version: "Unknown".to_string(),
@@ -62,7 +50,7 @@ fn detect_kernel() -> DetectionResult<KernelInfo> {
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
-fn detect_kernel() -> DetectionResult<KernelInfo> {
+fn detect_kernel(_ctx: &dyn SystemContext) -> DetectionResult<KernelInfo> {
     use crate::error::Error;
     DetectionResult::Error(Error::UnsupportedPlatform)
 }

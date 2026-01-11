@@ -1,7 +1,8 @@
 //! Memory information detection module
 
-use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
+use std::path::Path;
 
 /// Memory detection module
 #[derive(Debug)]
@@ -47,8 +48,8 @@ impl fmt::Display for MemoryInfo {
 }
 
 impl Module for MemoryModule {
-    fn detect(&self) -> DetectionResult<ModuleInfo> {
-        detect_memory().map(ModuleInfo::Memory)
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_memory(ctx).map(ModuleInfo::Memory)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -57,10 +58,8 @@ impl Module for MemoryModule {
 }
 
 #[cfg(target_os = "linux")]
-fn detect_memory() -> DetectionResult<MemoryInfo> {
-    use std::fs;
-
-    let meminfo = match fs::read_to_string("/proc/meminfo") {
+fn detect_memory(ctx: &dyn SystemContext) -> DetectionResult<MemoryInfo> {
+    let meminfo = match ctx.read_file(Path::new("/proc/meminfo")) {
         Ok(content) => content,
         Err(err) => return DetectionResult::Error(err.into()),
     };
@@ -95,19 +94,13 @@ fn detect_memory() -> DetectionResult<MemoryInfo> {
 }
 
 #[cfg(target_os = "macos")]
-fn detect_memory() -> DetectionResult<MemoryInfo> {
-    use std::process::Command;
-
-    let output = match Command::new("sysctl")
-        .arg("-n")
-        .arg("hw.memsize")
-        .output()
-    {
+fn detect_memory(ctx: &dyn SystemContext) -> DetectionResult<MemoryInfo> {
+    let output = match ctx.execute_command("sysctl", &["-n", "hw.memsize"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let total = if output.status.success() {
+    let total = if output.success {
         String::from_utf8_lossy(&output.stdout)
             .trim()
             .parse()
@@ -116,13 +109,13 @@ fn detect_memory() -> DetectionResult<MemoryInfo> {
         0
     };
 
-    let vm_output = match Command::new("vm_stat").output() {
+    let vm_output = match ctx.execute_command("vm_stat", &[]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
     let mut free_pages = 0u64;
-    if vm_output.status.success() {
+    if vm_output.success {
         let vm_stat = String::from_utf8_lossy(&vm_output.stdout);
         for line in vm_stat.lines() {
             if let Some(value) = line.strip_prefix("Pages free:") {
@@ -147,25 +140,19 @@ fn detect_memory() -> DetectionResult<MemoryInfo> {
 }
 
 #[cfg(target_os = "windows")]
-fn detect_memory() -> DetectionResult<MemoryInfo> {
+fn detect_memory(_ctx: &dyn SystemContext) -> DetectionResult<MemoryInfo> {
     // Simplified implementation - would need Windows API for accurate info
     DetectionResult::Unavailable
 }
 
 #[cfg(target_os = "freebsd")]
-fn detect_memory() -> DetectionResult<MemoryInfo> {
-    use std::process::Command;
-
-    let output = match Command::new("sysctl")
-        .arg("-n")
-        .arg("hw.physmem")
-        .output()
-    {
+fn detect_memory(ctx: &dyn SystemContext) -> DetectionResult<MemoryInfo> {
+    let output = match ctx.execute_command("sysctl", &["-n", "hw.physmem"]) {
         Ok(output) => output,
         Err(err) => return DetectionResult::Error(err.into()),
     };
 
-    let total = if output.status.success() {
+    let total = if output.success {
         String::from_utf8_lossy(&output.stdout)
             .trim()
             .parse()
@@ -188,7 +175,7 @@ fn detect_memory() -> DetectionResult<MemoryInfo> {
     target_os = "windows",
     target_os = "freebsd"
 )))]
-fn detect_memory() -> DetectionResult<MemoryInfo> {
+fn detect_memory(_ctx: &dyn SystemContext) -> DetectionResult<MemoryInfo> {
     use crate::error::Error;
     DetectionResult::Error(Error::UnsupportedPlatform)
 }

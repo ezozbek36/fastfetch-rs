@@ -1,6 +1,6 @@
 //! Host information detection module
 
-use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
+use crate::{context::SystemContext, DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
 
 /// Host detection module
@@ -20,8 +20,8 @@ impl fmt::Display for HostInfo {
 }
 
 impl Module for HostModule {
-    fn detect(&self) -> DetectionResult<ModuleInfo> {
-        detect_host().map(ModuleInfo::Host)
+    fn detect(&self, ctx: &dyn SystemContext) -> DetectionResult<ModuleInfo> {
+        detect_host(ctx).map(ModuleInfo::Host)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -30,36 +30,25 @@ impl Module for HostModule {
 }
 
 #[cfg(unix)]
-fn detect_host() -> DetectionResult<HostInfo> {
-    use std::ffi::CStr;
-
-    let mut buf = [0u8; 256];
-    let result = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
-
-    if result == 0 {
-        let hostname = unsafe { CStr::from_ptr(buf.as_ptr() as *const libc::c_char) }
-            .to_string_lossy()
-            .to_string();
-
-        DetectionResult::Detected(HostInfo { hostname })
-    } else {
-        DetectionResult::Unavailable
+fn detect_host(ctx: &dyn SystemContext) -> DetectionResult<HostInfo> {
+    match ctx.get_hostname() {
+        Ok(hostname) => DetectionResult::Detected(HostInfo { hostname }),
+        Err(_) => DetectionResult::Unavailable,
     }
 }
 
 #[cfg(target_os = "windows")]
-fn detect_host() -> DetectionResult<HostInfo> {
-    use std::env;
-
-    let hostname = env::var("COMPUTERNAME")
-        .or_else(|_| env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "Unknown".to_string());
+fn detect_host(ctx: &dyn SystemContext) -> DetectionResult<HostInfo> {
+    let hostname = ctx
+        .get_env("COMPUTERNAME")
+        .or_else(|| ctx.get_env("HOSTNAME"))
+        .unwrap_or_else(|| "Unknown".to_string());
 
     DetectionResult::Detected(HostInfo { hostname })
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
-fn detect_host() -> DetectionResult<HostInfo> {
+fn detect_host(_ctx: &dyn SystemContext) -> DetectionResult<HostInfo> {
     use crate::error::Error;
     DetectionResult::Error(Error::UnsupportedPlatform)
 }
