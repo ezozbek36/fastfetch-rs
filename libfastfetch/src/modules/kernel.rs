@@ -1,6 +1,6 @@
 //! Kernel information detection module
 
-use crate::{Module, ModuleInfo, ModuleKind, Result};
+use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
 
 /// Kernel detection module
@@ -21,9 +21,8 @@ impl fmt::Display for KernelInfo {
 }
 
 impl Module for KernelModule {
-    fn detect(&self) -> Result<ModuleInfo> {
-        let info = detect_kernel()?;
-        Ok(info.map(ModuleInfo::Kernel))
+    fn detect(&self) -> DetectionResult<ModuleInfo> {
+        detect_kernel().map(ModuleInfo::Kernel)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -32,7 +31,7 @@ impl Module for KernelModule {
 }
 
 #[cfg(unix)]
-fn detect_kernel() -> Result<KernelInfo> {
+fn detect_kernel() -> DetectionResult<KernelInfo> {
     use std::ffi::CStr;
     use std::mem;
 
@@ -48,22 +47,22 @@ fn detect_kernel() -> Result<KernelInfo> {
             .to_string_lossy()
             .to_string();
 
-        Ok(Some(KernelInfo { name, version }))
+        DetectionResult::Detected(KernelInfo { name, version })
     } else {
-        Ok(None)
+        DetectionResult::Unavailable
     }
 }
 
 #[cfg(target_os = "windows")]
-fn detect_kernel() -> Result<KernelInfo> {
-    Ok(Some(KernelInfo {
+fn detect_kernel() -> DetectionResult<KernelInfo> {
+    DetectionResult::Detected(KernelInfo {
         name: "Windows NT".to_string(),
         version: "Unknown".to_string(),
-    }))
+    })
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
-fn detect_kernel() -> Result<KernelInfo> {
+fn detect_kernel() -> DetectionResult<KernelInfo> {
     use crate::error::Error;
-    Err(Error::UnsupportedPlatform.into())
+    DetectionResult::Error(Error::UnsupportedPlatform)
 }

@@ -1,6 +1,6 @@
 //! Shell information detection module
 
-use crate::{Module, ModuleInfo, ModuleKind, Result};
+use crate::{DetectionResult, Module, ModuleInfo, ModuleKind};
 use std::fmt;
 
 /// Shell detection module
@@ -25,9 +25,8 @@ impl fmt::Display for ShellInfo {
 }
 
 impl Module for ShellModule {
-    fn detect(&self) -> Result<ModuleInfo> {
-        let info = detect_shell()?;
-        Ok(info.map(ModuleInfo::Shell))
+    fn detect(&self) -> DetectionResult<ModuleInfo> {
+        detect_shell().map(ModuleInfo::Shell)
     }
 
     fn kind(&self) -> ModuleKind {
@@ -36,7 +35,7 @@ impl Module for ShellModule {
 }
 
 #[cfg(unix)]
-fn detect_shell() -> Result<ShellInfo> {
+fn detect_shell() -> DetectionResult<ShellInfo> {
     use std::env;
     use std::path::Path;
 
@@ -60,7 +59,7 @@ fn detect_shell() -> Result<ShellInfo> {
         _ => None,
     };
 
-    Ok(Some(ShellInfo { name, version }))
+    DetectionResult::Detected(ShellInfo { name, version })
 }
 
 #[cfg(unix)]
@@ -88,7 +87,7 @@ fn get_command_version(cmd: &str, args: &[&str]) -> Option<String> {
 }
 
 #[cfg(target_os = "windows")]
-fn detect_shell() -> Result<ShellInfo> {
+fn detect_shell() -> DetectionResult<ShellInfo> {
     use std::env;
 
     let comspec = env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
@@ -99,14 +98,14 @@ fn detect_shell() -> Result<ShellInfo> {
         .unwrap_or("cmd")
         .to_string();
 
-    Ok(Some(ShellInfo {
+    DetectionResult::Detected(ShellInfo {
         name,
         version: None,
-    }))
+    })
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
-fn detect_shell() -> Result<ShellInfo> {
+fn detect_shell() -> DetectionResult<ShellInfo> {
     use crate::error::Error;
-    Err(Error::UnsupportedPlatform.into())
+    DetectionResult::Error(Error::UnsupportedPlatform)
 }
