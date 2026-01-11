@@ -55,7 +55,7 @@ Or, you can build your project via nix which will do all the dirty work for you.
 nix build
 
 # Executable binary is available at:
-./result/bin/fastfetch-cli
+./result/bin/fastfetch-rs
 ```
 
 ## FAQ

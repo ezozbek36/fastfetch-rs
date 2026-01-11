@@ -1,6 +1,6 @@
 # fastfetch-rs
 
-A blazingly fast system information tool written in Rust, inspired by [fastfetch](https://github.com/fastfetch-cli/fastfetch).
+A blazingly fast system information tool written in Rust, inspired by [fastfetch](https://github.com/fastfetch-rs/fastfetch).
 
 ## Features
 
@@ -45,7 +45,7 @@ Logos with auto-detection for:
 git clone https://github.com/ezozbek36/fastfetch-rs
 cd fastfetch-rs
 cargo build --release
-sudo cp target/release/fastfetch-cli /usr/local/bin/fastfetch-rs
+sudo cp target/release/fastfetch-rs /usr/local/bin/fastfetch-rs
 ```
 
 ## Usage
@@ -99,7 +99,7 @@ fastfetch-rs --no-parallel
 
 ```
 fastfetch-rs/
-├── fastfetch-cli/          # Binary crate (CLI interface)
+├── fastfetch-rs/          # Binary crate (CLI interface)
 │   └── src/
 │       └── main.rs         # CLI argument parsing with clap
 ├── libfastfetch/           # Library crate (core logic)
@@ -217,7 +217,7 @@ MIT License - see [LICENSE](LICENSE) for details
 
 ## Acknowledgments
 
-- Inspired by [fastfetch](https://github.com/fastfetch-cli/fastfetch)
+- Inspired by [fastfetch](https://github.com/fastfetch-rs/fastfetch)
 - ASCII logos adapted from [neofetch](https://github.com/dylanaraps/neofetch)
 
 ## Contributing
@@ -247,4 +247,4 @@ Future modules to implement:
 ## Links
 
 - [Repository](https://github.com/ezozbek36/fastfetch-rs)
-- [Original fastfetch](https://github.com/fastfetch-cli/fastfetch)
+- [Original fastfetch](https://github.com/fastfetch-rs/fastfetch)

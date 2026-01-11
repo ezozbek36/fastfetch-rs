@@ -17,8 +17,8 @@ let
   lib = pkgs.lib;
   getLibFolder = pkg: "${pkg}/lib";
 
-  # Manifest via fastfetch-cli/Cargo.toml (the binary crate in the workspace)
-  manifest = (pkgs.lib.importTOML ./fastfetch-cli/Cargo.toml).package;
+  # Manifest via fastfetch-rs/Cargo.toml (the binary crate in the workspace)
+  manifest = (pkgs.lib.importTOML ./fastfetch-rs/Cargo.toml).package;
 in
 pkgs.rustPlatform.buildRustPackage {
   # Package related things automatically
