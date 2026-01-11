@@ -50,7 +50,9 @@ fn detect_os() -> Result<OsInfo> {
     for line in os_release.lines() {
         if let Some(value) = line.strip_prefix("PRETTY_NAME=") {
             name = value.trim_matches('"').to_string();
-        } else if version.is_none() && let Some(value) = line.strip_prefix("VERSION=") {
+        } else if version.is_none()
+            && let Some(value) = line.strip_prefix("VERSION=")
+        {
             version = Some(value.trim_matches('"').to_string());
         }
     }
