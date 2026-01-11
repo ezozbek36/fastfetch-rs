@@ -6,16 +6,11 @@
 
 use crate::modules::ModuleKind;
 
-const DEFAULT_ASCII_LOGO: &str = r#"  ____          _   _     _    
- |  _ \ __ _ ___| |_| |__ (_)___
- | |_) / _` / __| __| '_ \| / __|
- |  _ < (_| \__ \ |_| | | | \__ \
- |_| \_\__,_|___/\__|_| |_|_|___/"#;
-
 /// Logo configuration placeholder.
 #[derive(Debug, Clone, Default)]
 pub struct LogoConfig {
     /// Optional ASCII logo to render alongside module output.
+    /// If None, logo will be auto-detected from system.
     pub ascii_art: Option<String>,
 }
 
@@ -81,7 +76,7 @@ impl Default for ConfigBuilder {
             parallel: true,
             values_only: false,
             logo: Some(LogoConfig {
-                ascii_art: Some(DEFAULT_ASCII_LOGO.to_string()),
+                ascii_art: None, // Auto-detect
             }),
             unknown_modules: Vec::new(),
         }

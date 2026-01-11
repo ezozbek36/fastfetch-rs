@@ -1,16 +1,15 @@
 [workspace]
 members = [
-  "fastfetch-cli", "libfastfetch",
+  "fastfetch-cli",
+  "libfastfetch",
 ]
-resolver = "3"
+resolver = "2"
 
 [workspace.package]
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/ezozbek36/fastfetch-rs"
 authors = ["Ezozbek Rasulov <contact@ezozbek.dev>"]
-# TODO: publish after initial release
-publish = false
 
 [profile.release]
 strip = true

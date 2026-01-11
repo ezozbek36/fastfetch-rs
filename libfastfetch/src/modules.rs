@@ -8,6 +8,8 @@ pub mod host;
 pub mod kernel;
 pub mod memory;
 pub mod os;
+pub mod shell;
+pub mod uptime;
 
 use crate::Result;
 use std::{fmt, str::FromStr};
@@ -36,6 +38,8 @@ pub enum ModuleKind {
     Os,
     Host,
     Kernel,
+    Uptime,
+    Shell,
     Cpu,
     Memory,
 }
@@ -47,6 +51,8 @@ impl ModuleKind {
             Self::Os => "OS",
             Self::Host => "Host",
             Self::Kernel => "Kernel",
+            Self::Uptime => "Uptime",
+            Self::Shell => "Shell",
             Self::Cpu => "CPU",
             Self::Memory => "Memory",
         }
@@ -54,7 +60,15 @@ impl ModuleKind {
 
     /// Get all available module kinds
     pub const fn all() -> &'static [Self] {
-        &[Self::Os, Self::Host, Self::Kernel, Self::Cpu, Self::Memory]
+        &[
+            Self::Os,
+            Self::Host,
+            Self::Kernel,
+            Self::Uptime,
+            Self::Shell,
+            Self::Cpu,
+            Self::Memory,
+        ]
     }
 }
 
@@ -66,6 +80,8 @@ impl FromStr for ModuleKind {
             "os" => Ok(Self::Os),
             "host" => Ok(Self::Host),
             "kernel" => Ok(Self::Kernel),
+            "uptime" => Ok(Self::Uptime),
+            "shell" => Ok(Self::Shell),
             "cpu" => Ok(Self::Cpu),
             "memory" => Ok(Self::Memory),
             _ => Err(format!("Unknown module: {s}")),
@@ -85,6 +101,8 @@ pub enum ModuleInfo {
     Os(os::OsInfo),
     Host(host::HostInfo),
     Kernel(kernel::KernelInfo),
+    Uptime(uptime::UptimeInfo),
+    Shell(shell::ShellInfo),
     Cpu(cpu::CpuInfo),
     Memory(memory::MemoryInfo),
 }
@@ -95,6 +113,8 @@ impl fmt::Display for ModuleInfo {
             Self::Os(info) => write!(f, "{info}"),
             Self::Host(info) => write!(f, "{info}"),
             Self::Kernel(info) => write!(f, "{info}"),
+            Self::Uptime(info) => write!(f, "{info}"),
+            Self::Shell(info) => write!(f, "{info}"),
             Self::Cpu(info) => write!(f, "{info}"),
             Self::Memory(info) => write!(f, "{info}"),
         }
@@ -107,6 +127,8 @@ pub fn create_module(kind: ModuleKind) -> Box<dyn Module> {
         ModuleKind::Os => Box::new(os::OsModule),
         ModuleKind::Host => Box::new(host::HostModule),
         ModuleKind::Kernel => Box::new(kernel::KernelModule),
+        ModuleKind::Uptime => Box::new(uptime::UptimeModule),
+        ModuleKind::Shell => Box::new(shell::ShellModule),
         ModuleKind::Cpu => Box::new(cpu::CpuModule),
         ModuleKind::Memory => Box::new(memory::MemoryModule),
     }
